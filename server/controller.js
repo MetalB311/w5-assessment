@@ -1,5 +1,19 @@
+require('dotenv').config()
+const { CONNECTION_STRING} = process.env
+
+const Sequelize = require('sequelize');
+
+const sequelize = new Sequelize(CONNECTION_STRING, {
+    dialect: 'postgres',
+    dialectOptions:{
+        ssl: {
+            rejectUnauthorized: false
+        }
+    }
+})
 
 
+// cant figure out why my new cities arent populating //
 module.exports = {
     seed: (req, res) => {
         sequelize.query(`
@@ -11,7 +25,18 @@ module.exports = {
                 name varchar
             );
 
-            *****YOUR CODE HERE*****
+            CREATE TABLE cities(
+                city_id SERIAL PRIMARY KEY,
+                name VARCHAR(100),
+                rating INTEGER,
+                country_id INTEGER REFERENCES countries(country_id)
+                );
+
+                INSERT INTO cities(name, rating, country_id)
+                VALUES
+                ('salt lake', 2, 113),
+                ('palisade', 4, 42),
+                ('happy valley', 5, 69)
 
             insert into countries (name)
             values ('Afghanistan'),
@@ -213,5 +238,42 @@ module.exports = {
             console.log('DB seeded!')
             res.sendStatus(200)
         }).catch(err => console.log('error seeding DB', err))
+    },
+
+    getCountries: (req, res) => {
+        sequelize.query(`
+        SELECT * FROM countries;
+        `).then(dbres => res.status(200).send(dbres[0]))
+        .catch(err => console.log(err))
+    },
+
+    createCity: (req, res) =>{
+        const {name, rating, countryId} = req.body
+        sequelize.query(`
+        INSERT INTO cities(name, rating, country_id)
+        VALUES('${name}', ${rating}, ${countryId})
+        `).then(dbRes => res.status(200).send(dbRes[0]))
+        .catch(err => console.log(err))
+    },
+
+    getCities: (req, res) => {
+        sequelize.query(`
+            SELECT cities.city_id, cities.name AS city, cities.rating, 
+            countries.country_id, countries.name AS country
+            FROM cities
+            JOIN countries 
+            ON city.country_id = co.country_id
+            ORDER BY cities.rating DESC
+        `).then(dbRes => res.status(200).send(dbRes[0]))
+        .catch(err => console.log(err))
+    },
+
+    deleteCity: (req, res) => {
+        const{id} = req.params
+        sequelize.query (`
+        DELETE FROM CITIES
+        WHERE ${id} = cities.city_id;
+        `).then(dbRes => res.status(200).send(dbRes[0]))
+        .catch(err => console.log(err))
     }
 }
